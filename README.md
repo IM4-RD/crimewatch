@@ -78,12 +78,3 @@ cd backend; .\venv\Scripts\activate; pip install -r requirements.txt; python ini
 |:---:|:---:|
 | ![Dashboard](docs/screenshots/officer_dashboard_screenshot.png) | ![Report Details](docs/screenshots/report_details_screenshot.png) |
 
----
-
-### Test Credentials (Pre-seeded)
-
-| Role | Email | Password | Permissions |
-|---|---|---|---|
-| **Public** | `public@crimewatch.ke` | `public123` | Submit reports, track own status |
-| **Officer** | `officer@crimewatch.ke` | `officer123` | View assigned reports, decrypt narratives, update status |
-| **Admin** | `admin@crimewatch.ke` | `admin123` | Full access, user management, reassign cases |
