@@ -1,0 +1,1040 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta name="theme-color" content="#07111f"/>
+<meta name="description" content="CrimeWatch — Secure offline-first witness reporting"/>
+<title>CrimeWatch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#07111f;--bg2:#0d1e33;--bg3:#162944;--surf:#1c3454;--bdr:#243d5c;
+  --acc:#e8c547;--acc2:#f97316;--red:#ef4444;--grn:#22c55e;--blu:#3b82f6;--pur:#a78bfa;
+  --txt:#eef3fa;--mut:#7a96b8;
+  --mono:'IBM Plex Mono',monospace;--sans:'DM Sans',sans-serif;--disp:'Syne',sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow-x:hidden}
+body{background:var(--bg);color:var(--txt);font-family:var(--sans);font-size:14px;line-height:1.5}
+button{cursor:pointer;border:none;font-family:inherit}
+input,textarea,select{font-family:inherit;font-size:14px;color:var(--txt)}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--bdr);border-radius:3px}
+
+/* LOADING */
+#ld{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px}
+.ld-logo{font-family:var(--disp);font-size:30px;font-weight:800;display:flex;align-items:center;gap:10px}
+.ld-dot{width:12px;height:12px;border-radius:50%;background:var(--acc);animation:pulse 1.2s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.5)}}
+.ld-bar{width:220px;height:2px;background:var(--bdr);border-radius:1px;overflow:hidden}
+.ld-fill{height:100%;background:linear-gradient(90deg,var(--acc),var(--acc2));animation:lfill 1.5s ease forwards}
+@keyframes lfill{from{width:0}to{width:100%}}
+.ld-msg{font-family:var(--mono);font-size:11px;color:var(--mut)}
+.enc-badge{font-family:var(--mono);font-size:10px;padding:4px 10px;border-radius:20px;border:1px solid rgba(167,139,250,.4);color:var(--pur);display:flex;align-items:center;gap:5px}
+.enc-dot{width:5px;height:5px;border-radius:50%;background:var(--pur)}
+
+/* SHELL */
+#shell{display:none;flex-direction:column;height:100vh}
+#shell.on{display:flex}
+
+/* TOPBAR */
+.topbar{flex-shrink:0;height:56px;border-bottom:1px solid var(--bdr);background:rgba(7,17,31,.92);backdrop-filter:blur(16px);display:flex;align-items:center;justify-content:space-between;padding:0 20px;position:sticky;top:0;z-index:50}
+.logo{font-family:var(--disp);font-size:17px;font-weight:800;display:flex;align-items:center;gap:8px}
+.logo-dot{width:9px;height:9px;border-radius:50%;background:var(--acc);animation:pulse 2s infinite}
+.topbar-r{display:flex;align-items:center;gap:10px}
+.conn{font-family:var(--mono);font-size:10px;padding:4px 10px;border-radius:20px;border:1px solid;display:flex;align-items:center;gap:5px;transition:all .3s}
+.conn.online{color:var(--grn);border-color:rgba(34,197,94,.4)}.conn.offline{color:var(--acc2);border-color:rgba(249,115,22,.4)}.conn.syncing{color:var(--blu);border-color:rgba(59,130,246,.4)}
+.conn-dot{width:5px;height:5px;border-radius:50%;background:currentColor}.conn.syncing .conn-dot{animation:blink .8s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+.enc-pill{font-family:var(--mono);font-size:10px;padding:3px 9px;border-radius:20px;border:1px solid rgba(167,139,250,.35);color:var(--pur);display:flex;align-items:center;gap:5px}
+.btn-sm{font-family:var(--mono);font-size:11px;padding:5px 12px;border-radius:6px;background:var(--surf);border:1px solid var(--bdr);color:var(--txt);transition:all .2s}
+.btn-sm:hover{border-color:var(--acc);color:var(--acc)}
+
+/* NAV */
+.nav{flex-shrink:0;display:flex;background:var(--bg2);border-bottom:1px solid var(--bdr);padding:0 16px;overflow-x:auto;scrollbar-width:none}
+.nav::-webkit-scrollbar{display:none}
+.ntab{font-family:var(--mono);font-size:11px;padding:11px 16px;color:var(--mut);border-bottom:2px solid transparent;white-space:nowrap;cursor:pointer;transition:all .2s;user-select:none;display:flex;align-items:center;gap:6px}
+.ntab:hover{color:var(--txt)}.ntab.active{color:var(--acc);border-bottom-color:var(--acc)}
+.nbadge{font-size:9px;padding:2px 6px;border-radius:20px;background:rgba(249,115,22,.15);color:var(--acc2);border:1px solid rgba(249,115,22,.3)}
+
+/* CONTENT */
+.content{flex:1;overflow-y:auto}
+.view{display:none;padding:24px 20px;max-width:880px;margin:0 auto;animation:fadeIn .2s ease}
+.view.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+.vh{margin-bottom:22px}.vh h2{font-family:var(--disp);font-size:20px;font-weight:800;letter-spacing:-.4px}.vh p{color:var(--mut);font-size:12px;margin-top:3px}
+
+/* CARDS */
+.card{background:var(--bg2);border:1px solid var(--bdr);border-radius:12px;padding:22px;margin-bottom:14px}
+.ct{font-family:var(--mono);font-size:10px;letter-spacing:1.2px;text-transform:uppercase;color:var(--mut);margin-bottom:16px}
+
+/* FIELDS */
+.field{margin-bottom:14px}.field label{display:block;font-family:var(--mono);font-size:10px;color:var(--mut);margin-bottom:5px;letter-spacing:.5px}
+.field input,.field textarea,.field select{width:100%;background:var(--bg3);border:1px solid var(--bdr);border-radius:8px;padding:10px 13px;outline:none;transition:border-color .2s;appearance:none;-webkit-appearance:none}
+.field input:focus,.field textarea:focus,.field select:focus{border-color:var(--acc)}
+.field textarea{resize:vertical;min-height:90px;line-height:1.6}.field select option{background:var(--bg2)}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:480px){.frow{grid-template-columns:1fr}}
+
+/* SEVERITY */
+.sev-g{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+.sev-b{padding:9px 4px;border-radius:8px;border:1px solid var(--bdr);background:var(--bg3);color:var(--mut);font-size:11px;text-align:center;cursor:pointer;transition:all .2s;user-select:none}
+.sev-b:hover{border-color:var(--acc)}.sev-b.sel{font-weight:600;color:#07111f}
+.sev-b[data-s=low].sel{background:#22c55e;border-color:#22c55e}
+.sev-b[data-s=medium].sel{background:#e8c547;border-color:#e8c547}
+.sev-b[data-s=high].sel{background:#f97316;border-color:#f97316}
+.sev-b[data-s=critical].sel{background:#ef4444;border-color:#ef4444}
+
+/* TOGGLE */
+.tog{display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none}
+.tog-track{width:38px;height:20px;border-radius:10px;background:var(--bdr);position:relative;transition:background .2s;flex-shrink:0}
+.tog-track.on{background:var(--grn)}.tog-knob{width:14px;height:14px;border-radius:50%;background:#fff;position:absolute;top:3px;left:3px;transition:left .2s}
+.tog-track.on .tog-knob{left:21px}.tog-lbl{font-size:12px;color:var(--mut)}
+
+/* UPLOAD */
+.upzone{border:2px dashed var(--bdr);border-radius:8px;padding:22px;text-align:center;cursor:pointer;transition:all .2s;color:var(--mut);font-size:12px}
+.upzone:hover{border-color:var(--acc);color:var(--txt)}.upzone input{display:none}
+.prev{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.thumb{width:60px;height:60px;border-radius:6px;border:1px solid var(--bdr);background:var(--bg3);object-fit:cover;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--mut);overflow:hidden}
+.thumb img{width:100%;height:100%;object-fit:cover}
+
+/* GPS */
+.loc-r{display:flex;gap:8px;align-items:flex-end}
+.loc-r .field{flex:1;margin:0}
+.btn-gps{padding:10px 13px;border-radius:8px;background:var(--surf);border:1px solid var(--bdr);color:var(--txt);font-family:var(--mono);font-size:11px;white-space:nowrap;transition:all .2s}
+.btn-gps:hover{border-color:var(--acc);color:var(--acc)}
+
+/* ENC STATUS */
+.enc-status{background:rgba(167,139,250,.08);border:1px solid rgba(167,139,250,.25);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-family:var(--mono);font-size:11px;color:var(--pur);display:flex;align-items:center;gap:8px}
+.enc-status.ready{color:var(--grn);background:rgba(34,197,94,.06);border-color:rgba(34,197,94,.25)}
+.enc-status.error{color:var(--red);background:rgba(239,68,68,.06);border-color:rgba(239,68,68,.25)}
+
+/* SUBMIT */
+.btn-submit{width:100%;padding:14px;border-radius:10px;background:var(--acc);color:#07111f;font-family:var(--disp);font-size:15px;font-weight:800;transition:all .2s;letter-spacing:-.3px}
+.btn-submit:hover{background:#f0d060;transform:translateY(-1px)}.btn-submit:active{transform:none}
+.btn-submit:disabled{opacity:.4;cursor:not-allowed;transform:none}
+
+/* REPORT CARDS */
+.rcard{background:var(--bg2);border:1px solid var(--bdr);border-radius:12px;padding:16px 18px;margin-bottom:10px;cursor:pointer;transition:border-color .2s;position:relative}
+.rcard:hover{border-color:rgba(232,197,71,.4)}
+.rcard-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.rcard-title{font-family:var(--disp);font-size:14px;font-weight:800;margin-bottom:3px}
+.rcard-meta{font-family:var(--mono);font-size:10px;color:var(--mut);display:flex;gap:10px;flex-wrap:wrap}
+.rcard-desc{font-size:12px;color:var(--mut);margin-top:7px;line-height:1.5}
+.rcard-foot{display:flex;gap:6px;align-items:center;margin-top:8px;flex-wrap:wrap}
+.pill{font-family:var(--mono);font-size:9px;padding:3px 9px;border-radius:20px;border:1px solid;white-space:nowrap}
+.s-pending      {color:var(--acc); border-color:rgba(232,197,71,.35);background:rgba(232,197,71,.08)}
+.s-synced       {color:var(--grn); border-color:rgba(34,197,94,.35); background:rgba(34,197,94,.07)}
+.s-received     {color:var(--blu); border-color:rgba(59,130,246,.35); background:rgba(59,130,246,.07)}
+.s-reviewing    {color:var(--pur); border-color:rgba(167,139,250,.35);background:rgba(167,139,250,.07)}
+.s-investigating{color:var(--acc2);border-color:rgba(249,115,22,.35); background:rgba(249,115,22,.07)}
+.s-resolved     {color:var(--mut); border-color:var(--bdr);           background:var(--bg3)}
+.sv-low{background:rgba(34,197,94,.1);color:#22c55e;border:1px solid rgba(34,197,94,.3)}
+.sv-medium{background:rgba(232,197,71,.1);color:#e8c547;border:1px solid rgba(232,197,71,.3)}
+.sv-high{background:rgba(249,115,22,.1);color:#f97316;border:1px solid rgba(249,115,22,.3)}
+.sv-critical{background:rgba(239,68,68,.1);color:#ef4444;border:1px solid rgba(239,68,68,.3)}
+.enc-tag{background:rgba(167,139,250,.1);color:var(--pur);border:1px solid rgba(167,139,250,.3);font-family:var(--mono);font-size:9px;padding:2px 7px;border-radius:4px}
+.offline-tag{position:absolute;top:10px;right:10px;font-family:var(--mono);font-size:9px;padding:2px 8px;border-radius:4px;background:rgba(249,115,22,.1);color:var(--acc2);border:1px solid rgba(249,115,22,.3)}
+
+/* STATS */
+.sg{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:20px}
+.sc{background:var(--bg2);border:1px solid var(--bdr);border-radius:12px;padding:18px}
+.sl{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--mut);margin-bottom:7px}
+.sv{font-family:var(--disp);font-size:28px;font-weight:800;letter-spacing:-1px}
+.ss{font-size:11px;color:var(--mut);margin-top:3px}
+.arow{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--bdr);font-size:12px}
+.arow:last-child{border:none}.adot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+
+/* QUEUE */
+.qitem{background:var(--bg2);border:1px dashed var(--bdr);border-radius:8px;padding:12px 16px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+.qi-l{display:flex;flex-direction:column;gap:2px}.qi-t{font-size:13px;font-weight:500}
+.qi-s{font-family:var(--mono);font-size:10px;color:var(--mut)}
+.btn-sync{font-family:var(--mono);font-size:11px;padding:6px 14px;border-radius:6px;background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.3);color:var(--blu);transition:all .2s}
+.btn-sync:hover{background:rgba(59,130,246,.2)}
+
+/* OFFICER */
+.fchips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.fchip{font-family:var(--mono);font-size:10px;padding:5px 12px;border-radius:20px;border:1px solid var(--bdr);background:var(--bg2);color:var(--mut);cursor:pointer;transition:all .2s}
+.fchip:hover{border-color:var(--acc);color:var(--txt)}.fchip.active{background:var(--acc);border-color:var(--acc);color:#07111f;font-weight:600}
+.sel-st{background:var(--bg3);border:1px solid var(--bdr);border-radius:6px;padding:6px 10px;color:var(--txt);font-family:var(--mono);font-size:11px}
+.note-inp{width:100%;margin-top:8px;background:var(--bg3);border:1px solid var(--bdr);border-radius:6px;padding:8px;font-size:12px;font-family:var(--sans);color:var(--txt);resize:none;outline:none;line-height:1.5}
+.note-inp:focus{border-color:var(--acc)}
+.dec-box{background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:12px 16px;margin-top:12px;font-family:var(--mono);font-size:11px;color:var(--red);line-height:1.7;word-break:break-all}
+.dec-box.ok{background:rgba(34,197,94,.06);border-color:rgba(34,197,94,.3);color:var(--grn)}
+
+/* MODAL */
+#modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:300;align-items:center;justify-content:center;padding:16px}
+#modal.show{display:flex}
+.mbox{background:var(--bg2);border:1px solid var(--bdr);border-radius:16px;width:100%;max-width:520px;max-height:88vh;overflow-y:auto;padding:26px}
+.mh{font-family:var(--disp);font-size:17px;font-weight:800;margin-bottom:14px}
+.mf{margin-bottom:11px}.mf strong{font-family:var(--mono);font-size:10px;color:var(--mut);display:block;margin-bottom:2px}.mf span{font-size:13px;line-height:1.6}
+.mclose{margin-top:18px;width:100%;padding:10px;border-radius:8px;border:1px solid var(--bdr);background:transparent;color:var(--mut);font-family:var(--mono);font-size:12px;transition:all .2s}
+.mclose:hover{border-color:var(--acc);color:var(--acc)}
+
+/* LOGIN */
+#lo{display:none;position:fixed;inset:0;background:rgba(7,17,31,.97);z-index:200;align-items:center;justify-content:center;padding:20px}
+#lo.show{display:flex}
+.lbox{background:var(--bg2);border:1px solid var(--bdr);border-radius:18px;padding:36px;width:100%;max-width:380px}
+.lbox h2{font-family:var(--disp);font-size:22px;font-weight:800;margin-bottom:4px}
+.lbox p{color:var(--mut);font-size:12px;margin-bottom:22px}
+.demo-btn{width:100%;padding:10px 14px;border-radius:8px;border:1px solid var(--bdr);background:var(--bg3);color:var(--mut);font-size:11px;font-family:var(--mono);text-align:left;transition:all .2s;display:flex;justify-content:space-between;align-items:center;margin-bottom:7px}
+.demo-btn:hover{border-color:var(--acc);color:var(--txt)}
+.drole{font-size:9px;padding:2px 7px;border-radius:4px;background:var(--surf)}
+.div{display:flex;align-items:center;gap:10px;margin:14px 0;color:var(--mut);font-size:11px}
+.div::before,.div::after{content:'';flex:1;height:1px;background:var(--bdr)}
+.skip{width:100%;padding:10px;border-radius:8px;border:1px solid var(--bdr);background:transparent;color:var(--mut);font-size:12px;transition:all .2s}
+.skip:hover{border-color:var(--mut);color:var(--txt)}
+
+/* TOASTS */
+#toasts{position:fixed;bottom:20px;right:20px;z-index:999;display:flex;flex-direction:column;gap:7px;pointer-events:none}
+.toast{background:var(--bg2);border:1px solid var(--bdr);border-radius:10px;padding:11px 16px;font-size:12px;min-width:200px;max-width:300px;display:flex;align-items:center;gap:9px;box-shadow:0 4px 20px rgba(0,0,0,.5);pointer-events:all;animation:tin .25s ease}
+.toast.success{border-color:rgba(34,197,94,.5)}.toast.error{border-color:rgba(239,68,68,.5)}.toast.info{border-color:rgba(59,130,246,.5)}.toast.warn{border-color:rgba(249,115,22,.5)}
+@keyframes tin{from{opacity:0;transform:translateY(10px)}}
+
+/* EMPTY */
+.empty{text-align:center;padding:52px 20px;color:var(--mut)}
+.empty-icon{font-size:34px;margin-bottom:10px;opacity:.35}
+
+/* SERVER BAR */
+.sbar{background:var(--bg3);border:1px solid var(--bdr);border-radius:8px;padding:10px 14px;margin-bottom:16px;display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:11px;color:var(--mut)}
+.sdot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="ld">
+  <div class="ld-logo"><div class="ld-dot"></div>CrimeWatch</div>
+  <div class="ld-bar"><div class="ld-fill"></div></div>
+  <div class="ld-msg" id="ldMsg">Initialising…</div>
+  <div class="enc-badge"><div class="enc-dot"></div>E2E Encryption</div>
+</div>
+
+<!-- SHELL -->
+<div id="shell">
+  <div class="topbar">
+    <div class="logo"><div class="logo-dot"></div>CrimeWatch</div>
+    <div class="topbar-r">
+      <div class="enc-pill" id="encPill"><div class="enc-dot" style="width:5px;height:5px;border-radius:50%;background:var(--pur)"></div>E2E</div>
+      <div class="conn online" id="connBadge"><div class="conn-dot"></div><span id="connTxt">Online</span></div>
+      <button class="btn-sm" id="userBtn" onclick="toggleLogin()">Sign in</button>
+    </div>
+  </div>
+
+  <div class="nav">
+    <div class="ntab active" data-v="report">＋ Report</div>
+    <div class="ntab" data-v="my-reports">My Reports</div>
+    <div class="ntab" data-v="dashboard">Dashboard</div>
+    <div class="ntab" data-v="queue">Queue <span class="nbadge" id="qBadge" style="display:none"></span></div>
+    <div class="ntab" id="officerTab" style="display:none" data-v="officer">Officer</div>
+    <div class="ntab" id="adminTab"   style="display:none" data-v="admin">Admin</div>
+  </div>
+
+  <div class="content">
+
+    <!-- ── REPORT FORM ── -->
+    <div class="view active" id="view-report">
+      <div class="vh"><h2>Submit witness report</h2><p>Encrypted locally · synced when online</p></div>
+      <div class="sbar"><div class="sdot" id="sDot" style="background:var(--mut)"></div><span id="sMsg">Checking server…</span></div>
+      <div class="enc-status" id="encStatus"><span>🔐</span> Loading encryption key from server…</div>
+
+      <div class="card">
+        <div class="ct">Incident details</div>
+        <div class="field"><label>Title *</label><input id="fTitle" placeholder="Brief description of incident"/></div>
+        <div class="frow">
+          <div class="field"><label>Type *</label>
+            <select id="fType">
+              <option value="">Select…</option>
+              <option>Assault</option><option>Robbery</option><option>Theft</option>
+              <option>Vandalism</option><option>Suspicious activity</option>
+              <option>Traffic incident</option><option>Domestic disturbance</option>
+              <option>Fraud</option><option>Cybercrime</option><option>Other</option>
+            </select>
+          </div>
+          <div class="field"><label>Date &amp; time *</label><input id="fDatetime" type="datetime-local"/></div>
+        </div>
+        <div class="field">
+          <label>Severity</label>
+          <div class="sev-g">
+            <div class="sev-b" data-s="low"      onclick="setSev(this)">🟢 Low</div>
+            <div class="sev-b sel" data-s="medium" onclick="setSev(this)">🟡 Medium</div>
+            <div class="sev-b" data-s="high"     onclick="setSev(this)">🟠 High</div>
+            <div class="sev-b" data-s="critical" onclick="setSev(this)">🔴 Critical</div>
+          </div>
+        </div>
+        <div class="field"><label>Description *</label><textarea id="fDesc" placeholder="What did you witness? Include as much detail as possible. All content is end-to-end encrypted."></textarea></div>
+        <div class="field"><label>Suspect description (optional)</label><input id="fSuspect" placeholder="Appearance, clothing, vehicle, direction of travel…"/></div>
+      </div>
+
+      <div class="card">
+        <div class="ct">Location</div>
+        <div class="loc-r">
+          <div class="field"><label>Address / landmark</label><input id="fLoc" placeholder="Street, area or landmark"/></div>
+          <button class="btn-gps" onclick="getGPS()">📍 GPS</button>
+        </div>
+        <div class="frow">
+          <div class="field"><label>Latitude</label><input id="fLat" placeholder="Auto-filled" readonly/></div>
+          <div class="field"><label>Longitude</label><input id="fLng" placeholder="Auto-filled" readonly/></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="ct">Evidence (encrypted before upload)</div>
+        <div class="upzone" onclick="document.getElementById('fMedia').click()">
+          <input type="file" id="fMedia" multiple accept="image/*,video/*" onchange="addMedia(this)"/>
+          <div style="font-size:22px;margin-bottom:6px">📎</div>
+          <div>Attach photos or videos</div>
+          <div style="font-size:10px;color:var(--mut);margin-top:3px">AES-256 encrypted · uploaded on sync</div>
+        </div>
+        <div class="prev" id="mediaPrev"></div>
+      </div>
+
+      <div class="card">
+        <div class="ct">Witness identity</div>
+        <div class="field"><label>Your name (optional)</label><input id="fName" placeholder="Leave blank to stay anonymous"/></div>
+        <div class="field"><label>Contact (optional)</label><input id="fContact" placeholder="Phone or email for follow-up — encrypted"/></div>
+        <div class="field"><div class="tog" onclick="toggleAnon()">
+          <div class="tog-track" id="anonTrack"><div class="tog-knob"></div></div>
+          <span class="tog-lbl" id="anonLbl">Submit anonymously</span>
+        </div></div>
+      </div>
+
+      <button class="btn-submit" id="btnSubmit" onclick="submitReport()">🔐 Encrypt &amp; Submit Report</button>
+    </div>
+
+    <!-- ── MY REPORTS ── -->
+    <div class="view" id="view-my-reports">
+      <div class="vh"><h2>My reports</h2><p>All submissions from this device · encrypted at rest</p></div>
+      <div id="myList"></div>
+    </div>
+
+    <!-- ── DASHBOARD ── -->
+    <div class="view" id="view-dashboard">
+      <div class="vh"><h2>Dashboard</h2><p>Local statistics</p></div>
+      <div class="sg" id="statGrid"></div>
+      <div class="card"><div class="ct">Recent activity</div><div id="actFeed"></div></div>
+    </div>
+
+    <!-- ── QUEUE ── -->
+    <div class="view" id="view-queue">
+      <div class="vh"><h2>Sync queue</h2><p>Encrypted reports pending upload</p></div>
+      <div id="queueContent"></div>
+    </div>
+
+    <!-- ── OFFICER ── -->
+    <div class="view" id="view-officer">
+      <div class="vh"><h2>Officer view</h2><p>Server reports · update status · request decryption</p></div>
+      <div class="fchips" id="ofFilters">
+        <div class="fchip active" data-f="all"           onclick="setFilter(this,'all')">All</div>
+        <div class="fchip" data-f="received"             onclick="setFilter(this,'received')">Received</div>
+        <div class="fchip" data-f="reviewing"            onclick="setFilter(this,'reviewing')">Reviewing</div>
+        <div class="fchip" data-f="investigating"        onclick="setFilter(this,'investigating')">Investigating</div>
+        <div class="fchip" data-f="resolved"             onclick="setFilter(this,'resolved')">Resolved</div>
+      </div>
+      <div id="ofList"></div>
+    </div>
+
+    <!-- ── ADMIN ── -->
+    <div class="view" id="view-admin">
+      <div class="vh"><h2>Admin panel</h2><p>User management</p></div>
+      <div id="adminContent"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- LOGIN -->
+<div id="lo">
+  <div class="lbox">
+    <h2>CrimeWatch</h2>
+    <p>Sign in to sync reports and access officer tools</p>
+    <button class="demo-btn" onclick="quickLogin('public@crimewatch.ke','public123')">public@crimewatch.ke <span class="drole">public</span></button>
+    <button class="demo-btn" onclick="quickLogin('officer@crimewatch.ke','officer123')">officer@crimewatch.ke <span class="drole">officer</span></button>
+    <button class="demo-btn" onclick="quickLogin('admin@crimewatch.ke','admin123')">admin@crimewatch.ke <span class="drole">admin</span></button>
+    <div class="div">or</div>
+    <button class="skip" onclick="skipLogin()">Continue without signing in</button>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div id="modal" onclick="closeModal(event)"><div class="mbox" id="mbox"></div></div>
+
+<!-- TOASTS -->
+<div id="toasts"></div>
+
+<script type="module">
+// ══════════════════════════════════════════════════════════
+// INLINE MODULES (no build step needed)
+// ══════════════════════════════════════════════════════════
+
+// ── IndexedDB ─────────────────────────────────────────────
+const DB = (() => {
+  let _db = null;
+  function open() {
+    if (_db) return Promise.resolve(_db);
+    return new Promise((res, rej) => {
+      const r = indexedDB.open('crimewatch-idb', 1);
+      r.onupgradeneeded = e => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains('reports')) {
+          const s = db.createObjectStore('reports', { keyPath: 'client_id' });
+          s.createIndex('status', 'status', { unique: false });
+          s.createIndex('created_at', 'created_at', { unique: false });
+        }
+        if (!db.objectStoreNames.contains('queue'))
+          db.createObjectStore('queue', { keyPath: 'client_id' });
+        if (!db.objectStoreNames.contains('meta'))
+          db.createObjectStore('meta', { keyPath: 'key' });
+      };
+      r.onsuccess = e => { _db = e.target.result; res(_db); };
+      r.onerror   = e => rej(e.target.error);
+    });
+  }
+  const p = r => new Promise((s,j) => { r.onsuccess = e => s(e.target.result); r.onerror = e => j(e.target.error); });
+  return {
+    async save(rep) {
+      const db = await open();
+      return new Promise((res, rej) => {
+        const tx = db.transaction(['reports','queue'], 'readwrite');
+        tx.objectStore('reports').put(rep);
+        if (rep.status === 'pending') tx.objectStore('queue').put(rep);
+        else tx.objectStore('queue').delete(rep.client_id);
+        tx.oncomplete = () => res(rep); tx.onerror = e => rej(e.target.error);
+      });
+    },
+    async all() {
+      const db = await open();
+      return new Promise((res, rej) => {
+        const r = db.transaction('reports','readonly').objectStore('reports').getAll();
+        r.onsuccess = e => res(e.target.result.sort((a,b)=>b.created_at.localeCompare(a.created_at)));
+        r.onerror   = e => rej(e.target.error);
+      });
+    },
+    async queue() {
+      const db = await open();
+      return new Promise((res, rej) => {
+        const r = db.transaction('queue','readonly').objectStore('queue').getAll();
+        r.onsuccess = e => res(e.target.result); r.onerror = e => rej(e.target.error);
+      });
+    },
+    async synced(client_id, server_id) {
+      const db = await open();
+      return new Promise((res, rej) => {
+        const tx = db.transaction(['reports','queue'], 'readwrite');
+        const rs = tx.objectStore('reports');
+        const gr = rs.get(client_id);
+        gr.onsuccess = e => {
+          const r = e.target.result;
+          if (r) { r.status = 'synced'; r.server_id = server_id; r.synced_at = new Date().toISOString(); rs.put(r); }
+          tx.objectStore('queue').delete(client_id);
+        };
+        tx.oncomplete = () => res(); tx.onerror = e => rej(e.target.error);
+      });
+    },
+    async getMeta(k) { const db = await open(); const r = await p(db.transaction('meta','readonly').objectStore('meta').get(k)); return r?.value ?? null; },
+    async setMeta(k, v) { const db = await open(); return p(db.transaction('meta','readwrite').objectStore('meta').put({ key:k, value:v })); },
+    async delMeta(k) { const db = await open(); return p(db.transaction('meta','readwrite').objectStore('meta').delete(k)); },
+    async getStats() {
+      const all = await this.all();
+      const s = { total: all.length, pending: 0, synced: 0, received: 0, reviewing: 0, investigating: 0, resolved: 0, by_type: {}, by_severity: {} };
+      for (const r of all) {
+        s[r.status] = (s[r.status] || 0) + 1;
+        s.by_type[r.incident_type] = (s.by_type[r.incident_type] || 0) + 1;
+        s.by_severity[r.severity]  = (s.by_severity[r.severity]  || 0) + 1;
+      }
+      return s;
+    }
+  };
+})();
+
+// ── WebCrypto E2E ─────────────────────────────────────────
+const CRYPTO = (() => {
+  let _serverPubKey = null;
+  const b64e = buf => btoa(String.fromCharCode(...new Uint8Array(buf)));
+  const b64d = s  => Uint8Array.from(atob(s), c => c.charCodeAt(0)).buffer;
+  const pemBuf = pem => b64d(pem.replace(/-----[^-]+-----/g,'').replace(/\s/g,''));
+  return {
+    async loadKey(pem) {
+      _serverPubKey = await crypto.subtle.importKey(
+        'spki', pemBuf(pem),
+        { name:'RSA-OAEP', hash:'SHA-256' },
+        false, ['wrapKey']
+      );
+    },
+    ready() { return !!_serverPubKey; },
+    async encrypt(obj) {
+      if (!_serverPubKey) throw new Error('Server key not loaded');
+      const plain    = new TextEncoder().encode(JSON.stringify(obj));
+      const aesKey   = await crypto.subtle.generateKey({ name:'AES-GCM', length:256 }, true, ['encrypt','decrypt']);
+      const iv       = crypto.getRandomValues(new Uint8Array(12));
+      const enc      = await crypto.subtle.encrypt({ name:'AES-GCM', iv, tagLength:128 }, aesKey, plain);
+      const ctag     = enc.slice(0, enc.byteLength-16);
+      const tag      = enc.slice(enc.byteLength-16);
+      const wrapped  = await crypto.subtle.wrapKey('raw', aesKey, _serverPubKey, { name:'RSA-OAEP' });
+      return {
+        encrypted_payload: b64e(ctag),
+        encryption_iv:     b64e(iv),
+        encryption_tag:    b64e(tag),
+        wrapped_key:       b64e(wrapped),
+      };
+    },
+    newId() {
+      const a = crypto.getRandomValues(new Uint8Array(8));
+      return 'CW-'+Date.now()+'-'+b64e(a).replace(/[+/=]/g,'').slice(0,7);
+    },
+  };
+})();
+
+// ── API ───────────────────────────────────────────────────
+const BASE = window.location.port === '8080' ? 'http://127.0.0.1:8000' : '';
+let _tok = null;
+const API = {
+  setTok(t) { _tok = t; }, clearTok() { _tok = null; },
+  async call(path, opts={}) {
+    const h = { 'Content-Type':'application/json', ...(opts.headers||{}) };
+    if (_tok) h['Authorization'] = `Bearer ${_tok}`;
+    const cfg = { ...opts, headers:h };
+    if (cfg.body && typeof cfg.body==='object') cfg.body = JSON.stringify(cfg.body);
+    try {
+      const res  = await fetch(BASE+path, cfg);
+      const data = await res.json().catch(()=>({}));
+      if (!res.ok) throw Object.assign(new Error(data.detail||`HTTP ${res.status}`), { status:res.status });
+      return data;
+    } catch(err) {
+      if (err.name==='TypeError') throw Object.assign(new Error('Server offline'), { offline:true });
+      throw err;
+    }
+  },
+  login:  (e,p)    => API.call('/api/auth/login',    { method:'POST', body:{email:e,password:p} }),
+  logout: ()       => API.call('/api/auth/logout',   { method:'POST' }).catch(()=>{}),
+  pubKey: ()       => API.call('/api/keys/public'),
+  submit: r        => API.call('/api/reports',           { method:'POST', body:r }),
+  bulk:   rs       => API.call('/api/reports/bulk-sync', { method:'POST', body:{reports:rs} }),
+  list:   (q='')   => API.call('/api/reports'+q),
+  report: (id,dec) => API.call(`/api/reports/${id}`+(dec?'?decrypt=true':'')),
+  status: (id,s,n,a) => API.call(`/api/reports/${id}/status`, { method:'PATCH', body:{status:s,note:n,assign_to:a} }),
+  stats:  ()       => API.call('/api/stats'),
+  users:  ()       => API.call('/api/users'),
+  officers: ()     => API.call('/api/users/officers'),
+  health: ()       => API.call('/api/health').then(d=>({online:true,...d})).catch(()=>({online:false})),
+};
+
+// ══════════════════════════════════════════════════════════
+// APP STATE
+// ══════════════════════════════════════════════════════════
+let user=null, isOnline=navigator.onLine, serverOk=false;
+let sev='medium', anon=false, mediaFiles=[], ofFilter='all';
+
+// ── SERVICE WORKER ────────────────────────────────────────
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(()=>{});
+  navigator.serviceWorker.addEventListener('message', e => {
+    if (e.data?.type==='SYNC_DONE') {
+      if (e.data.synced>0) toast(`${e.data.synced} report${e.data.synced>1?'s':''} synced ✓`,'success');
+      refresh(); updateQBadge();
+    }
+  });
+}
+
+// ── INIT ──────────────────────────────────────────────────
+async function init() {
+  setLd('Opening IndexedDB…'); await DB.all();
+  setLd('Restoring session…');
+  const t = await DB.getMeta('token'), u = await DB.getMeta('user');
+  if (t && u) { API.setTok(t); user = u; applyUser(); }
+  setLd('Checking server…'); await checkServer();
+  setLd('Loading encryption key…'); await loadEncKey();
+  setLd('Ready ✓');
+  await new Promise(r => setTimeout(r, 350));
+  document.getElementById('ld').style.display = 'none';
+  document.getElementById('shell').classList.add('on');
+  document.getElementById('fDatetime').value = new Date().toISOString().slice(0,16);
+  updateConn(); updateQBadge();
+  window.addEventListener('online',  () => { isOnline=true;  updateConn(); if(serverOk) attemptSync(); });
+  window.addEventListener('offline', () => { isOnline=false; updateConn(); });
+  document.querySelectorAll('.ntab').forEach(t => t.addEventListener('click', () => showView(t.dataset.v)));
+  setInterval(checkServer, 30000);
+  setInterval(updateQBadge, 5000);
+  if (isOnline && serverOk) setTimeout(attemptSync, 1500);
+}
+
+function setLd(m) { document.getElementById('ldMsg').textContent = m; }
+
+async function checkServer() {
+  const h = await API.health();
+  serverOk = h.online;
+  const dot = document.getElementById('sDot'), msg = document.getElementById('sMsg');
+  dot.style.background = serverOk ? 'var(--grn)' : 'var(--red)';
+  msg.textContent = serverOk ? `Server online · v${h.version||'?'} · DB ${h.db||'?'}` : 'Server offline · data saved locally';
+}
+
+async function loadEncKey() {
+  const el = document.getElementById('encStatus');
+  try {
+    const data = await API.pubKey();
+    await CRYPTO.loadKey(data.public_key);
+    el.className = 'enc-status ready';
+    el.innerHTML = '<span>🔒</span> AES-256-GCM + RSA-OAEP encryption active';
+  } catch {
+    el.className = 'enc-status error';
+    el.innerHTML = '<span>⚠</span> Encryption key unavailable — reports saved locally only';
+  }
+}
+
+// ── AUTH ─────────────────────────────────────────────────
+window.toggleLogin = () => user ? doLogout() : document.getElementById('lo').classList.add('show');
+window.skipLogin   = () => document.getElementById('lo').classList.remove('show');
+window.quickLogin  = async (email, pw) => {
+  try {
+    const d = await API.login(email, pw);
+    API.setTok(d.token); user = d.user;
+    await DB.setMeta('token', d.token); await DB.setMeta('user', d.user);
+    applyUser(); document.getElementById('lo').classList.remove('show');
+    toast(`Signed in as ${d.user.name}`, 'success');
+    await loadEncKey();
+  } catch(err) { toast(err.offline ? 'Server offline' : err.message, 'error'); }
+};
+async function doLogout() {
+  await API.logout(); API.clearTok(); user = null;
+  await DB.delMeta('token'); await DB.delMeta('user');
+  applyUser(); toast('Signed out', 'info');
+}
+function applyUser() {
+  const btn = document.getElementById('userBtn');
+  btn.textContent = user ? user.name.split(' ')[0]+' ↑' : 'Sign in';
+  document.getElementById('officerTab').style.display = (user?.role==='officer'||user?.role==='admin') ? 'block' : 'none';
+  document.getElementById('adminTab').style.display   = user?.role==='admin' ? 'block' : 'none';
+}
+
+// ── CONNECTIVITY ─────────────────────────────────────────
+function updateConn() {
+  const b = document.getElementById('connBadge'), t = document.getElementById('connTxt');
+  b.className = 'conn '+(isOnline?'online':'offline');
+  t.textContent = isOnline ? 'Online' : 'Offline';
+}
+function setSyncing(v) {
+  const b = document.getElementById('connBadge'), t = document.getElementById('connTxt');
+  if (v) { b.className='conn syncing'; t.textContent='Syncing…'; }
+  else updateConn();
+}
+
+// ── SYNC ─────────────────────────────────────────────────
+async function attemptSync() {
+  const pending = await DB.queue();
+  if (!pending.length) return;
+  setSyncing(true);
+  try {
+    const res = await API.bulk(pending);
+    for (const r of res.results)
+      if (r.status==='synced'||r.status==='already_synced') await DB.synced(r.client_id, r.server_id);
+    if (res.synced>0) toast(`${res.synced} report${res.synced>1?'s':''} synced ✓`, 'success');
+    refresh(); updateQBadge();
+  } catch(err) { toast(err.offline ? 'Sync skipped — server offline' : 'Sync error: '+err.message, 'warn'); }
+  finally { setSyncing(false); }
+}
+
+// ── NAV ───────────────────────────────────────────────────
+function showView(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.ntab').forEach(t => t.classList.remove('active'));
+  document.getElementById('view-'+name)?.classList.add('active');
+  document.querySelector(`.ntab[data-v="${name}"]`)?.classList.add('active');
+  if (name==='my-reports') renderMyReports();
+  if (name==='dashboard')  renderDashboard();
+  if (name==='queue')      renderQueue();
+  if (name==='officer')    renderOfficer();
+  if (name==='admin')      renderAdmin();
+}
+function refresh() {
+  if (document.getElementById('view-my-reports').classList.contains('active')) renderMyReports();
+  if (document.getElementById('view-dashboard').classList.contains('active'))  renderDashboard();
+  if (document.getElementById('view-queue').classList.contains('active'))      renderQueue();
+}
+
+// ── FORM HELPERS ─────────────────────────────────────────
+window.setSev = el => {
+  sev = el.dataset.s;
+  document.querySelectorAll('.sev-b').forEach(b => b.classList.remove('sel'));
+  el.classList.add('sel');
+};
+window.toggleAnon = () => {
+  anon = !anon;
+  document.getElementById('anonTrack').classList.toggle('on', anon);
+  document.getElementById('anonLbl').textContent = anon ? 'Anonymous submission' : 'Submit anonymously';
+};
+window.getGPS = () => {
+  if (!navigator.geolocation) { toast('Geolocation not available', 'error'); return; }
+  toast('Acquiring GPS…', 'info');
+  navigator.geolocation.getCurrentPosition(pos => {
+    document.getElementById('fLat').value = pos.coords.latitude.toFixed(6);
+    document.getElementById('fLng').value = pos.coords.longitude.toFixed(6);
+    document.getElementById('fLoc').value = `${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`;
+    toast('Location captured', 'success');
+  }, () => toast('GPS failed', 'error'));
+};
+window.addMedia = inp => {
+  Array.from(inp.files).forEach(f => {
+    mediaFiles.push(f.name);
+    const wrap = document.createElement('div'); wrap.className = 'thumb';
+    if (f.type.startsWith('image/')) { const img = document.createElement('img'); img.src = URL.createObjectURL(f); wrap.appendChild(img); }
+    else wrap.textContent = '🎥 '+f.name.slice(0,8);
+    document.getElementById('mediaPrev').appendChild(wrap);
+  });
+};
+
+// ── SUBMIT ────────────────────────────────────────────────
+window.submitReport = async () => {
+  const title = document.getElementById('fTitle').value.trim();
+  const type  = document.getElementById('fType').value;
+  const desc  = document.getElementById('fDesc').value.trim();
+  const dt    = document.getElementById('fDatetime').value;
+  if (!title||!type||!desc||!dt) { toast('Fill in all required fields *', 'error'); return; }
+
+  const btn = document.getElementById('btnSubmit');
+  btn.disabled = true; btn.textContent = '🔐 Encrypting…';
+
+  // Full report payload (this is what gets E2E encrypted)
+  const fullPayload = {
+    title, incident_type: type, description: desc,
+    severity: sev,
+    incident_datetime: dt,
+    location:  document.getElementById('fLoc').value || 'Unknown',
+    latitude:  parseFloat(document.getElementById('fLat').value) || null,
+    longitude: parseFloat(document.getElementById('fLng').value) || null,
+    witness_name:    anon ? 'Anonymous' : (document.getElementById('fName').value || 'Anonymous'),
+    witness_contact: anon ? null : document.getElementById('fContact').value,
+    suspect_description: document.getElementById('fSuspect').value,
+    is_anonymous: anon,
+    media_filenames: [...mediaFiles],
+  };
+
+  // Encrypt
+  let encryptedFields = {};
+  if (CRYPTO.ready()) {
+    try {
+      btn.textContent = '🔐 Encrypting…';
+      encryptedFields = await CRYPTO.encrypt(fullPayload);
+    } catch(err) {
+      toast('Encryption failed: '+err.message, 'error');
+      btn.disabled = false; btn.textContent = '🔐 Encrypt & Submit Report';
+      return;
+    }
+  } else {
+    toast('Encryption key not loaded — report saved locally only', 'warn');
+    encryptedFields = {
+      encrypted_payload: btoa(JSON.stringify(fullPayload)),
+      encryption_iv: '', encryption_tag: '', wrapped_key: '',
+    };
+  }
+
+  const client_id = CRYPTO.newId();
+  const record = {
+    client_id,
+    ...encryptedFields,
+    severity: sev,
+    incident_type: type,
+    is_anonymous: anon,
+    latitude:  fullPayload.latitude,
+    longitude: fullPayload.longitude,
+    location_label: fullPayload.location,
+    client_created_at: new Date().toISOString(),
+    // Local display fields (not sent to server)
+    _local: {
+      title, description: desc, incident_type: type,
+      severity: sev, location: fullPayload.location,
+      witness_name: fullPayload.witness_name,
+      media_filenames: fullPayload.media_filenames,
+    },
+    status: 'pending',
+    server_id: null, synced_at: null,
+    created_at: new Date().toISOString(),
+  };
+
+  // Save to IDB first
+  await DB.save(record);
+  updateQBadge();
+  toast('Encrypted & saved locally', 'info');
+
+  // Try server
+  if (isOnline && serverOk) {
+    setSyncing(true);
+    btn.textContent = '↑ Uploading…';
+    try {
+      const res = await API.submit(record);
+      await DB.synced(client_id, res.id);
+      toast('Report submitted & synced to server ✓', 'success');
+    } catch(err) {
+      toast(err.offline ? 'Saved offline — will sync later' : err.message, 'warn');
+      if ('serviceWorker' in navigator && 'SyncManager' in window) {
+        const reg = await navigator.serviceWorker.ready;
+        reg.sync.register('cw-sync').catch(()=>{});
+      }
+    } finally { setSyncing(false); }
+  } else {
+    toast('Offline — will sync when server available', 'warn');
+  }
+
+  // Reset
+  updateQBadge();
+  ['fTitle','fType','fDesc','fDatetime','fLoc','fLat','fLng','fName','fContact','fSuspect']
+    .forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+  mediaFiles = [];
+  document.getElementById('mediaPrev').innerHTML = '';
+  sev = 'medium';
+  document.querySelectorAll('.sev-b').forEach((b,i) => b.classList.toggle('sel', i===1));
+  if (anon) toggleAnon();
+  btn.disabled = false; btn.textContent = '🔐 Encrypt & Submit Report';
+  document.getElementById('fDatetime').value = new Date().toISOString().slice(0,16);
+};
+
+// ── RENDER: MY REPORTS ────────────────────────────────────
+async function renderMyReports() {
+  const reports = await DB.all();
+  const el = document.getElementById('myList');
+  if (!reports.length) { el.innerHTML = `<div class="empty"><div class="empty-icon">📋</div><p>No reports yet.</p></div>`; return; }
+  el.innerHTML = reports.map(r => {
+    const loc = r._local || {};
+    return `<div class="rcard" onclick="openModal('${r.client_id}')">
+      ${r.status==='pending'?'<div class="offline-tag">⏳ pending</div>':''}
+      <div class="rcard-top">
+        <div>
+          <div class="rcard-title">${esc(loc.title||'Encrypted report')}</div>
+          <div class="rcard-meta"><span>${r.client_id.slice(0,18)}…</span><span>${esc(loc.incident_type||r.incident_type||'—')}</span><span>${fmt(r.created_at)}</span></div>
+        </div>
+        <div class="pill s-${r.status}">${r.status}</div>
+      </div>
+      <div class="rcard-desc">${esc((loc.description||'').slice(0,100))}${(loc.description||'').length>100?'…':''}</div>
+      <div class="rcard-foot">
+        <span class="pill sv-${r.severity||loc.severity}">${(r.severity||loc.severity||'').toUpperCase()}</span>
+        <span class="enc-tag">🔐 E2E</span>
+        ${r.server_id?`<span style="font-family:var(--mono);font-size:9px;color:var(--mut)">Server: ${r.server_id.slice(0,8)}…</span>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── RENDER: DASHBOARD ─────────────────────────────────────
+async function renderDashboard() {
+  const s = await DB.getStats();
+  const byType = s.by_type || {};
+  const top = Object.entries(byType).sort((a,b)=>b[1]-a[1])[0];
+  document.getElementById('statGrid').innerHTML = `
+    <div class="sc"><div class="sl">Total</div><div class="sv" style="color:var(--acc)">${s.total}</div><div class="ss">This device</div></div>
+    <div class="sc"><div class="sl">Synced</div><div class="sv" style="color:var(--grn)">${s.synced+s.received+s.reviewing+s.investigating+s.resolved}</div><div class="ss">On server</div></div>
+    <div class="sc"><div class="sl">Pending</div><div class="sv" style="color:var(--acc2)">${s.pending}</div><div class="ss">Awaiting sync</div></div>
+    <div class="sc"><div class="sl">Top type</div><div class="sv" style="font-size:13px;margin-top:6px">${top?top[0]:'—'}</div><div class="ss">${top?top[1]+' reports':''}</div></div>
+  `;
+  const reports = await DB.all();
+  const feed = document.getElementById('actFeed');
+  if (!reports.length) { feed.innerHTML='<div style="color:var(--mut);font-size:12px;padding:10px 0">No activity yet.</div>'; return; }
+  const sc = {low:'var(--grn)',medium:'var(--acc)',high:'var(--acc2)',critical:'var(--red)'};
+  feed.innerHTML = reports.slice(0,10).map(r => {
+    const loc = r._local||{};
+    return `<div class="arow"><div class="adot" style="background:${sc[r.severity||loc.severity]}"></div>
+    <div style="flex:1"><span style="font-weight:500">${esc(loc.title||'Encrypted')}</span> <span style="color:var(--mut)">· ${esc(loc.incident_type||r.incident_type||'—')}</span></div>
+    <div class="pill s-${r.status}">${r.status}</div><span style="font-family:var(--mono);font-size:10px;color:var(--mut)">${fmt(r.created_at)}</span></div>`;
+  }).join('');
+}
+
+// ── RENDER: QUEUE ─────────────────────────────────────────
+async function renderQueue() {
+  const pending = await DB.queue();
+  const el = document.getElementById('queueContent');
+  if (!pending.length) { el.innerHTML = `<div class="empty"><div class="empty-icon">✅</div><p>All reports synced.</p></div>`; return; }
+  el.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+    <span style="font-size:12px;color:var(--mut)">${pending.length} encrypted report${pending.length>1?'s':''} waiting</span>
+    <button class="btn-sync" onclick="window._sync()">↑ Sync now</button>
+  </div>` + pending.map(r => `
+    <div class="qitem">
+      <div class="qi-l">
+        <div class="qi-t">${esc((r._local?.title)||'Encrypted report')}</div>
+        <div class="qi-s">${r.client_id.slice(0,24)} · ${fmt(r.created_at)}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px"><span class="enc-tag">🔐 E2E</span><div class="pill s-pending">pending</div></div>
+    </div>`).join('');
+}
+window._sync = () => { if(!isOnline||!serverOk){toast('Server not reachable','error');return;} attemptSync(); };
+
+// ── RENDER: OFFICER ───────────────────────────────────────
+async function renderOfficer() {
+  if (!user || (user.role!=='officer'&&user.role!=='admin')) {
+    document.getElementById('ofList').innerHTML = `<div class="empty"><div class="empty-icon">🔒</div><p>Sign in as officer or admin.</p></div>`; return;
+  }
+  let all = [];
+  let officers = [];
+  try {
+    const d = await API.list(ofFilter!=='all'?'?status='+ofFilter:'');
+    all = d.reports||[];
+    const o = await API.officers();
+    officers = o.officers||[];
+  } catch(err) { document.getElementById('ofList').innerHTML=`<div class="empty"><div class="empty-icon">🔌</div><p>Could not load server reports.<br><span style="font-size:11px">${err.message}</span></p></div>`; return; }
+  if (!all.length) { document.getElementById('ofList').innerHTML=`<div class="empty"><div class="empty-icon">📂</div><p>No reports.</p></div>`; return; }
+  const STATUSES = ['received','reviewing','investigating','resolved','closed'];
+  const officerOptions = officers.map(o => `<option value="${o.id}">${esc(o.name)} (${esc(o.email)})</option>`).join('');
+  document.getElementById('ofList').innerHTML = all.map(r => `
+    <div class="rcard" style="cursor:default">
+      <div class="rcard-top">
+        <div>
+          <div class="rcard-title" style="font-size:13px">${r.id.slice(0,8)}… · ${esc(r.incident_type)}</div>
+          <div class="rcard-meta"><span>${fmt(r.received_at)}</span><span>${r.location_label||'—'}</span></div>
+        </div>
+        <div class="pill s-${r.status}">${r.status}</div>
+      </div>
+      <div class="rcard-foot">
+        <span class="pill sv-${r.severity}">${r.severity.toUpperCase()}</span>
+        <span class="enc-tag">🔐 E2E encrypted</span>
+      </div>
+      <div style="margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <select class="sel-st" id="sel-${r.id}">${STATUSES.map(s=>`<option${r.status===s?' selected':''}>${s}</option>`).join('')}</select>
+        <select class="sel-st" id="assign-${r.id}"><option value="">Assign to officer</option>${officerOptions}</select>
+        <textarea class="note-inp" id="note-${r.id}" rows="1" placeholder="Officer note…">${''}</textarea>
+        <button class="btn-sync" onclick="updateStatus('${r.id}')">Update</button>
+        <button class="btn-sync" style="color:var(--pur);border-color:rgba(167,139,250,.3);background:rgba(167,139,250,.1)" onclick="requestDecrypt('${r.id}')">🔓 Decrypt</button>
+      </div>
+      <div id="dec-${r.id}"></div>
+    </div>`).join('');
+}
+
+window.updateStatus = async id => {
+  const status = document.getElementById('sel-'+id).value;
+  const note   = document.getElementById('note-'+id).value;
+  const assign = document.getElementById('assign-'+id)?.value || null;
+  try { await API.status(id, status, note, assign); toast('Status updated ✓','success'); renderOfficer(); }
+  catch(err) { toast(err.message,'error'); }
+};
+
+window.requestDecrypt = async id => {
+  const el = document.getElementById('dec-'+id);
+  el.innerHTML = `<div class="dec-box">🔓 Requesting decryption from server…</div>`;
+  try {
+    const data = await API.report(id, true);
+    if (data.decrypted) {
+      const d = data.decrypted;
+      el.innerHTML = `<div class="dec-box ok">
+        <strong style="color:var(--txt)">${esc(d.title||'—')}</strong><br/>
+        <span style="color:var(--mut)">${esc(d.description||'')}</span><br/><br/>
+        📍 ${esc(d.location||'—')}<br/>
+        👤 ${esc(d.witness_name||'Anonymous')}${d.witness_contact?' · '+esc(d.witness_contact):''}<br/>
+        🚨 Suspect: ${esc(d.suspect_description||'Not provided')}
+      </div>`;
+    } else {
+      el.innerHTML = `<div class="dec-box">Decryption failed: ${esc(data.decrypt_error||'unknown error')}</div>`;
+    }
+  } catch(err) { el.innerHTML = `<div class="dec-box">Error: ${esc(err.message)}</div>`; }
+};
+
+window.setFilter = (el, f) => {
+  ofFilter = f;
+  document.querySelectorAll('.fchip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  renderOfficer();
+};
+
+// ── RENDER: ADMIN ─────────────────────────────────────────
+async function renderAdmin() {
+  if (user?.role !== 'admin') { document.getElementById('adminContent').innerHTML='<div class="empty"><div class="empty-icon">🔒</div><p>Admins only.</p></div>'; return; }
+  try {
+    const { users } = await API.users();
+    document.getElementById('adminContent').innerHTML = `
+      <div class="card"><div class="ct">Users (${users.length})</div>` +
+      users.map(u => `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--bdr)">
+        <div><div style="font-weight:500">${esc(u.name)}</div><div style="font-family:var(--mono);font-size:10px;color:var(--mut)">${esc(u.email)}</div></div>
+        <select class="sel-st" onchange="updateRole('${u.id}',this.value)">
+          ${['public','officer','admin'].map(r=>`<option${u.role===r?' selected':''}>${r}</option>`).join('')}
+        </select>
+      </div>`).join('') + '</div>';
+  } catch(err) { document.getElementById('adminContent').innerHTML=`<div class="empty"><p>${err.message}</p></div>`; }
+}
+window.updateRole = async (id, role) => {
+  try { await API.call(`/api/users/${id}/role`,{method:'PATCH',body:{role}}); toast('Role updated','success'); renderAdmin(); }
+  catch(err) { toast(err.message,'error'); }
+};
+
+// ── QUEUE BADGE ───────────────────────────────────────────
+async function updateQBadge() {
+  const q = await DB.queue();
+  const b = document.getElementById('qBadge');
+  if (q.length) { b.textContent=q.length; b.style.display='inline'; } else b.style.display='none';
+}
+
+// ── MODAL ─────────────────────────────────────────────────
+window.openModal = async cid => {
+  const all = await DB.all();
+  const r   = all.find(x => x.client_id===cid);
+  if (!r) return;
+  const loc = r._local||{};
+  document.getElementById('mbox').innerHTML = `
+    <div class="mh">${esc(loc.title||'Encrypted Report')}</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">
+      <div class="pill s-${r.status}">${r.status}</div>
+      <span class="pill sv-${r.severity||loc.severity}">${(r.severity||loc.severity||'').toUpperCase()}</span>
+      <span class="enc-tag">🔐 E2E encrypted</span>
+    </div>
+    <div class="mf"><strong>Client ID</strong><span>${r.client_id}</span></div>
+    ${r.server_id?`<div class="mf"><strong>Server ID</strong><span>${r.server_id}</span></div>`:''}
+    <div class="mf"><strong>Type</strong><span>${esc(loc.incident_type||r.incident_type||'—')}</span></div>
+    <div class="mf"><strong>Location</strong><span>${esc(loc.location||r.location_label||'—')}</span></div>
+    ${r.latitude?`<div class="mf"><strong>Coordinates</strong><span>${r.latitude}, ${r.longitude}</span></div>`:''}
+    <div class="mf"><strong>Description</strong><span style="color:var(--mut)">${esc(loc.description||'[Encrypted — not decryptable client-side]')}</span></div>
+    <div class="mf"><strong>Witness</strong><span>${esc(loc.witness_name||'Anonymous')}</span></div>
+    ${loc.media_filenames?.length?`<div class="mf"><strong>Media</strong><span>${loc.media_filenames.join(', ')}</span></div>`:''}
+    <div class="mf"><strong>Created</strong><span>${fmt(r.created_at)}</span></div>
+    ${r.synced_at?`<div class="mf"><strong>Synced</strong><span>${fmt(r.synced_at)}</span></div>`:''}
+    <button class="mclose" onclick="closeModal()">Close</button>
+  `;
+  document.getElementById('modal').classList.add('show');
+};
+window.closeModal = e => {
+  if (!e || e.target===document.getElementById('modal'))
+    document.getElementById('modal').classList.remove('show');
+};
+
+// ── TOAST ─────────────────────────────────────────────────
+window.toast = (msg, type='info') => {
+  const icons = {success:'✓',error:'✗',info:'ℹ',warn:'⚠'};
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.innerHTML = `<span style="font-family:var(--mono)">${icons[type]||'·'}</span><span>${msg}</span>`;
+  document.getElementById('toasts').appendChild(el);
+  setTimeout(() => { el.style.opacity='0'; el.style.transition='opacity .4s'; }, 3400);
+  setTimeout(() => el.remove(), 3900);
+};
+
+// ── HELPERS ───────────────────────────────────────────────
+function fmt(iso) { if(!iso) return '—'; return new Date(iso).toLocaleString(undefined,{dateStyle:'short',timeStyle:'short'}); }
+function esc(s)   { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ── SEED DEMO ─────────────────────────────────────────────
+async function seedDemo() {
+  const ex = await DB.all();
+  if (ex.length) return;
+  const demos = [
+    {title:'Suspicious vehicle near school',incident_type:'Suspicious activity',description:'Dark SUV, no plates, parked near gate for 2+ hours. Driver watching students.',severity:'high',location:'Ngong Road, Nairobi',lat:-1.2921,lng:36.8219,status:'synced',server_id:'srv-demo-1'},
+    {title:'Bag snatching at bus stop',incident_type:'Robbery',description:'Two men on motorbike snatched a handbag at Westlands bus stop.',severity:'high',location:'Westlands, Nairobi',lat:-1.2674,lng:36.8069,status:'synced',server_id:'srv-demo-2'},
+    {title:'Fight outside parking lot',incident_type:'Assault',description:'Physical altercation between three individuals at Sarit Centre.',severity:'medium',location:'Sarit Centre',lat:-1.2695,lng:36.8065,status:'pending',server_id:null},
+  ];
+  const now = Date.now();
+  for (let i=0; i<demos.length; i++) {
+    const d = demos[i];
+    await DB.save({
+      client_id: `CW-${now-i*3600000}-demo${i}`,
+      encrypted_payload: btoa(JSON.stringify(d)),
+      encryption_iv:'', encryption_tag:'', wrapped_key:'',
+      severity: d.severity, incident_type: d.incident_type,
+      is_anonymous: true, latitude: d.lat, longitude: d.lng,
+      location_label: d.location,
+      status: d.status, server_id: d.server_id,
+      client_created_at: new Date(now-i*86400000*2).toISOString(),
+      created_at: new Date(now-i*86400000*2).toISOString(),
+      synced_at: d.status==='synced' ? new Date(now-i*86400000*2+600000).toISOString() : null,
+      _local: { title:d.title, description:d.description, incident_type:d.incident_type, severity:d.severity, location:d.location, witness_name:'Anonymous', media_filenames:[] },
+    });
+  }
+}
+
+// ── BOOT ──────────────────────────────────────────────────
+seedDemo().then(() => init());
+</script>
+</body>
+</html>

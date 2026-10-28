@@ -1,0 +1,60 @@
+{
+  "name": "CrimeWatch — Secure Witness Reporting",
+  "short_name": "CrimeWatch",
+  "description": "Offline-first, end-to-end encrypted crime witness reporting app",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#07111f",
+  "theme_color": "#e8c547",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%23e8c547' width='192' height='192'/><text x='50%' y='50%' font-size='80' font-weight='800' text-anchor='middle' dominant-baseline='central' fill='%23071127' font-family='system-ui'>🛡️</text></svg>",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect fill='%23e8c547' width='512' height='512'/><text x='50%' y='50%' font-size='240' font-weight='800' text-anchor='middle' dominant-baseline='central' fill='%23071127' font-family='system-ui'>🛡️</text></svg>",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["productivity", "utilities"],
+  "screenshots": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 540 720'><rect fill='%23071127' width='540' height='720'/><text x='270' y='360' font-size='80' text-anchor='middle' dominant-baseline='central' fill='%23e8c547'>CrimeWatch</text></svg>",
+      "sizes": "540x720",
+      "type": "image/svg+xml",
+      "form_factor": "narrow"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Submit Report",
+      "short_name": "Report",
+      "description": "Submit a new witness report",
+      "url": "/?view=report",
+      "icons": [{ "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 96'><rect fill='%23f97316' width='96' height='96'/><text x='48' y='48' font-size='48' text-anchor='middle' dominant-baseline='central' fill='white'>📝</text></svg>", "sizes": "96x96" }]
+    },
+    {
+      "name": "View Reports",
+      "short_name": "Reports",
+      "description": "View submitted reports",
+      "url": "/?view=my-reports",
+      "icons": [{ "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 96'><rect fill='%233b82f6' width='96' height='96'/><text x='48' y='48' font-size='48' text-anchor='middle' dominant-baseline='central' fill='white'>📋</text></svg>", "sizes": "96x96" }]
+    }
+  ],
+  "share_target": {
+    "action": "/share",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "files": [{ "name": "media", "accept": ["image/*", "video/*"] }]
+    }
+  }
+}

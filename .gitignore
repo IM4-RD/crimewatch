@@ -1,0 +1,72 @@
+# Environment & Secrets
+.env
+.env.local
+.env.*.local
+.env.production.local
+
+# RSA Keys (auto-generated or manual)
+backend/keys/private.pem
+backend/keys/public.pem
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environments
+.venv
+venv/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Node (frontend)
+node_modules/
+npm-debug.log
+yarn-error.log
+frontend/node_modules/
+
+# Media uploads (temporary, should be backed up separately)
+backend/media/
+!backend/media/.gitkeep
+
+# Logs
+*.log
+logs/
+
+# OS & Temporary
+.DS_Store
+Thumbs.db
+*.bak
+
